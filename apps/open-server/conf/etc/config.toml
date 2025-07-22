@@ -1,0 +1,16 @@
+[grpc]
+access_ip = ""
+bind_ip = "0.0.0.0"
+bind_port = 50001
+
+[etcd]
+endpoints = ["etcd:2379"]
+
+[otel]
+dsn = "otel-collector:4317"
+
+[log]
+level = "info"
+
+[mysql]
+dsn = "admin:admin123@tcp(mysql:3306)/king_storage?charset=utf8mb4&parseTime=true&loc=Local"

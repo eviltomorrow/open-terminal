@@ -8,19 +8,27 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-var startup = time.Now()
+var (
+	startup = time.Now()
+)
 
 var (
 	LaunchTime = func() string {
 		return FormatDuration(time.Since(startup))
 	}
 	Machine   machine
+	Network   network
 	Process   process
 	Directory directory
 )
 
 type machine struct {
 	Hostname string
+}
+
+type network struct {
+	AccessIP string
+	BindIP   string
 }
 
 type process struct {
@@ -42,8 +50,9 @@ type directory struct {
 }
 
 func String() string {
-	data := map[string]interface{}{
+	var data = map[string]interface{}{
 		"machine": Machine,
+		"network": Network,
 		"process": Process,
 	}
 
@@ -52,22 +61,24 @@ func String() string {
 }
 
 func FormatDuration(d time.Duration) string {
-	var day, hour, minute, second int
+	var (
+		day, hour, minute, second int
+	)
 
 	switch {
 	case d.Hours() > 23.0:
-		h := int(d.Hours())
+		var h = int(d.Hours())
 		day = h / 24
 		hour = h % 24
 		minute = int(d.Minutes()) - (day*24+hour)*60
 		second = int(d.Seconds()) - ((day*24+hour)*60+minute)*60
 	case d.Minutes() > 59.0:
-		m := int(d.Minutes())
+		var m = int(d.Minutes())
 		hour = m / 60
 		minute = m % 60
 		second = int(d.Seconds()) - (hour*60+minute)*60
 	case d.Seconds() > 59:
-		s := int(d.Seconds())
+		var s = int(d.Seconds())
 		minute = s / 60
 		second = s % 60
 	default:

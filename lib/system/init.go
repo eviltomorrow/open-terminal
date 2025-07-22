@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	netutil "github.com/eviltomorrow/open-terminal/lib/network"
 )
 
 func LoadRuntime() error {
@@ -31,6 +33,12 @@ func LoadRuntime() error {
 	Process.Args = os.Args[1:]
 	Process.Pid = os.Getpid()
 	Process.PPid = os.Getppid()
+
+	ipv4, err := netutil.GetInterfaceIPv4First()
+	if err != nil {
+		return err
+	}
+	Network.BindIP = ipv4
 
 	hostname, err := os.Hostname()
 	if err != nil {
