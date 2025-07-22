@@ -32,26 +32,24 @@ esac
 root_dir=$(pwd)
 PATH=${root_dir}/tools/protoc-gen-go/${GOOS}_${GOARCH}:$PATH
 
-for name in $(ls ${root_dir}/lib/entity); do
-    # echo ${name}
-    if [ "${name##*.}"x = "proto"x ]; then
-        mkdir -p ${root_dir}/lib/grpc/pb/entity
+# for name in $(ls ${root_dir}/lib/entity); do
+#     # echo ${name}
+#     if [ "${name##*.}"x = "proto"x ]; then
+#         mkdir -p ${root_dir}/lib/grpc/pb/entity
         
-        file_name=${root_dir}/lib/entity/${name}
+#         file_name=${root_dir}/lib/entity/${name}
 
-        ${root_dir}/tools/protoc/${GOOS}_${GOARCH}/bin/protoc --proto_path="${root_dir}" --proto_path="${root_dir}/lib/entity" --go_opt=paths=source_relative --go_out="${root_dir}/lib/grpc/pb/entity" --go-grpc_opt=paths=source_relative --go-grpc_out="${root_dir}/lib/grpc/pb/entity" ${name}
-        code=$(echo $?)
-        if [ $code = 0 ]; then
-            echo -e "编译文件: ${file_name} => [\033[32m成功\033[0m] "
-        else
-            echo -e "[\033[34mFatal\033[0m]: 编译文件: [${file_name}] => [\033[34m失败\033[0m] "
-            echo -e "\t <<<<<<<<<<<< 编译过程意外退出，已终止  <<<<<<<<<<<<"
-            exit
-        fi
-    fi
-done
-
-
+#         ${root_dir}/tools/protoc/${GOOS}_${GOARCH}/bin/protoc --proto_path="${root_dir}" --proto_path="${root_dir}/lib/entity" --go_opt=paths=source_relative --go_out="${root_dir}/lib/grpc/pb/entity" --go-grpc_opt=paths=source_relative --go-grpc_out="${root_dir}/lib/grpc/pb/entity" ${name}
+#         code=$(echo $?)
+#         if [ $code = 0 ]; then
+#             echo -e "编译文件: ${file_name} => [\033[32m成功\033[0m] "
+#         else
+#             echo -e "[\033[34mFatal\033[0m]: 编译文件: [${file_name}] => [\033[34m失败\033[0m] "
+#             echo -e "\t <<<<<<<<<<<< 编译过程意外退出，已终止  <<<<<<<<<<<<"
+#             exit
+#         fi
+#     fi
+# done
 
 for name in $(ls ${root_dir}/apps); do
     # echo ${name}
