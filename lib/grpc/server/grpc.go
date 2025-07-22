@@ -6,9 +6,7 @@ import (
 	"net"
 	"path/filepath"
 
-	"github.com/eviltomorrow/king/lib/certificate"
-	"github.com/eviltomorrow/king/lib/etcd"
-	"github.com/eviltomorrow/open-terminal/lib/buildinfo"
+	"github.com/eviltomorrow/open-terminal/lib/certificate"
 	"github.com/eviltomorrow/open-terminal/lib/finalizer"
 	"github.com/eviltomorrow/open-terminal/lib/grpc/middleware"
 	"github.com/eviltomorrow/open-terminal/lib/log"
@@ -34,11 +32,16 @@ type GRPC struct {
 }
 
 func NewGRPC(network *network.Config, log *log.Config, supported ...func(*grpc.Server)) *GRPC {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &GRPC{
 		network: network,
 		log:     log,
 
 		RegisteredAPI: supported,
+
+		ctx:    ctx,
+		cancel: cancel,
 	}
 }
 
@@ -121,13 +124,6 @@ func (g *GRPC) Serve() error {
 		}
 	}()
 
-	g.ctx, g.cancel = context.WithCancel(context.Background())
-	if etcd.Client != nil {
-		g.revokeFunc, err = etcd.RegisterService(g.ctx, buildinfo.AppName, system.Network.AccessIP, g.network.BindPort, 10)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -138,7 +134,9 @@ func (g *GRPC) Stop() error {
 	if g.server != nil {
 		g.server.GracefulStop()
 	}
-	g.cancel()
+	if g.cancel != nil {
+		g.cancel()
+	}
 
 	return nil
 }
