@@ -5,9 +5,11 @@ go 1.24.5
 require (
 	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
 	github.com/benbjohnson/clock v1.3.5
+	github.com/bwmarrin/snowflake v0.3.0
 	github.com/fatih/color v1.18.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/json-iterator/go v1.1.12
+	github.com/qdrant/go-client v1.15.0
 	github.com/sashabaranov/go-openai v1.40.5
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
