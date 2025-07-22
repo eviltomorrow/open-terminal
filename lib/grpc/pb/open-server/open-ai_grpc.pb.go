@@ -11,8 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -21,14 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	OpenAI_CrawlMetadataAsync_FullMethodName = "/collector.OpenAI/CrawlMetadataAsync"
+	OpenAI_CreateChat_FullMethodName = "/server.OpenAI/CreateChat"
 )
 
 // OpenAIClient is the client API for OpenAI service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OpenAIClient interface {
-	CrawlMetadataAsync(ctx context.Context, in *wrapperspb.StringValue, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	CreateChat(ctx context.Context, in *ChatReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ChatResp], error)
 }
 
 type openAIClient struct {
@@ -39,21 +37,30 @@ func NewOpenAIClient(cc grpc.ClientConnInterface) OpenAIClient {
 	return &openAIClient{cc}
 }
 
-func (c *openAIClient) CrawlMetadataAsync(ctx context.Context, in *wrapperspb.StringValue, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *openAIClient) CreateChat(ctx context.Context, in *ChatReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ChatResp], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, OpenAI_CrawlMetadataAsync_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &OpenAI_ServiceDesc.Streams[0], OpenAI_CreateChat_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[ChatReq, ChatResp]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type OpenAI_CreateChatClient = grpc.ServerStreamingClient[ChatResp]
 
 // OpenAIServer is the server API for OpenAI service.
 // All implementations must embed UnimplementedOpenAIServer
 // for forward compatibility.
 type OpenAIServer interface {
-	CrawlMetadataAsync(context.Context, *wrapperspb.StringValue) (*emptypb.Empty, error)
+	CreateChat(*ChatReq, grpc.ServerStreamingServer[ChatResp]) error
 	mustEmbedUnimplementedOpenAIServer()
 }
 
@@ -64,8 +71,8 @@ type OpenAIServer interface {
 // pointer dereference when methods are called.
 type UnimplementedOpenAIServer struct{}
 
-func (UnimplementedOpenAIServer) CrawlMetadataAsync(context.Context, *wrapperspb.StringValue) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CrawlMetadataAsync not implemented")
+func (UnimplementedOpenAIServer) CreateChat(*ChatReq, grpc.ServerStreamingServer[ChatResp]) error {
+	return status.Errorf(codes.Unimplemented, "method CreateChat not implemented")
 }
 func (UnimplementedOpenAIServer) mustEmbedUnimplementedOpenAIServer() {}
 func (UnimplementedOpenAIServer) testEmbeddedByValue()                {}
@@ -88,36 +95,30 @@ func RegisterOpenAIServer(s grpc.ServiceRegistrar, srv OpenAIServer) {
 	s.RegisterService(&OpenAI_ServiceDesc, srv)
 }
 
-func _OpenAI_CrawlMetadataAsync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(wrapperspb.StringValue)
-	if err := dec(in); err != nil {
-		return nil, err
+func _OpenAI_CreateChat_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ChatReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(OpenAIServer).CrawlMetadataAsync(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: OpenAI_CrawlMetadataAsync_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OpenAIServer).CrawlMetadataAsync(ctx, req.(*wrapperspb.StringValue))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(OpenAIServer).CreateChat(m, &grpc.GenericServerStream[ChatReq, ChatResp]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type OpenAI_CreateChatServer = grpc.ServerStreamingServer[ChatResp]
 
 // OpenAI_ServiceDesc is the grpc.ServiceDesc for OpenAI service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var OpenAI_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "collector.OpenAI",
+	ServiceName: "server.OpenAI",
 	HandlerType: (*OpenAIServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "CrawlMetadataAsync",
-			Handler:    _OpenAI_CrawlMetadataAsync_Handler,
+			StreamName:    "CreateChat",
+			Handler:       _OpenAI_CreateChat_Handler,
+			ServerStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "open-ai.proto",
 }

@@ -4,8 +4,30 @@ import "google/protobuf/wrappers.proto";
 import "google/protobuf/empty.proto";
 
 option go_package = "./;pb";
-package collector;
+package server;
 
 service OpenAI {
-    rpc CrawlMetadataAsync(google.protobuf.StringValue) returns (google.protobuf.Empty){}
+    rpc CreateChat(ChatReq) returns (stream ChatResp){}
+}
+
+enum Role {
+    SYSTEM = 0;
+    USER = 1;
+    ASSISTANT = 2;
+    FUNCTION = 3;
+    TOOL = 4;
+    DEVELOP = 5;
+}
+
+message Message {
+    string content = 1;
+}
+
+message ChatReq {
+    Role role = 1;
+    string content = 2;
+}
+
+message ChatResp {
+    Message message = 1;
 }
