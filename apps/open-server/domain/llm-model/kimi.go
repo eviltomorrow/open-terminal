@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 
 	libqdrant "github.com/eviltomorrow/open-terminal/lib/qdrant"
@@ -43,6 +44,7 @@ type KimiSession struct {
 
 	client       *KimiClient
 	alreadyStart bool
+	num          uint64
 }
 
 func (c *KimiClient) NewSession(modelName string) (*KimiSession, error) {
@@ -51,8 +53,18 @@ func (c *KimiClient) NewSession(modelName string) (*KimiSession, error) {
 	session := &KimiSession{
 		Id:        id,
 		ModelName: modelName,
+
+		client: c,
 	}
 	return session, nil
+}
+
+func (s *KimiSession) getNum() uint64 {
+	s.Lock()
+	defer s.Unlock()
+
+	s.num = s.num + 1
+	return s.num
 }
 
 func (s *KimiSession) isAlreadyStart() bool {
@@ -107,6 +119,29 @@ func (s *KimiSession) cache(id uint64, content string) error {
 	return nil
 }
 
+func (s *KimiSession) search(content string) ([]string, error) {
+	vec, err := s.embeddings(content)
+	if err != nil {
+		return nil, err
+	}
+
+	points, err := libqdrant.Client.Query(context.Background(), &qdrant.QueryPoints{
+		CollectionName: s.Id,
+		Query:          qdrant.NewQuery(vec...),
+		WithPayload:    qdrant.NewWithPayload(true),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	data := make([]string, 0, len(points))
+	for _, point := range points {
+		text := point.Payload["content"].GetStringValue()
+		data = append(data, text)
+	}
+	return data, nil
+}
+
 func (s *KimiSession) StartChat(ctx context.Context, content string, opts ...func(*openai.ChatCompletionRequest)) (chan string, error) {
 	if s.isAlreadyStart() {
 		return nil, fmt.Errorf("session'chat already start")
@@ -138,24 +173,37 @@ func (s *KimiSession) StartChat(ctx context.Context, content string, opts ...fun
 		opt(&req)
 	}
 
-	ch, err := s.sendRequest(ctx, req)
-	if err != nil {
-		return nil, err
-	}
+	// ch, err := s.sendRequest(ctx, req)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	ch := make(chan string, 1)
+	ch <- content
 
 	s.setAlreadyStart()
+
+	if err := s.cache(s.getNum(), content); err != nil {
+		zlog.Error("Cache content failure", zap.Error(err), zap.String("content", content), zap.String("sessionId", s.Id))
+	}
 	return ch, nil
 }
 
 func (s *KimiSession) Send(ctx context.Context, content string, opts ...func(*openai.ChatCompletionRequest)) (chan string, error) {
+	relevant, err := s.search(content)
+	if err != nil {
+		return nil, fmt.Errorf("search history content failure, nest error: %v", err)
+	}
+
+	msg := strings.Join(relevant, "\n---\n")
+
 	req := openai.ChatCompletionRequest{
 		Model:  s.ModelName,
 		Stream: true,
 
 		Messages: []openai.ChatCompletionMessage{
 			{
-				Role:    openai.ChatMessageRoleUser,
-				Content: content,
+				Role:    openai.ChatMessageRoleSystem,
+				Content: msg,
 			},
 		},
 	}
@@ -164,7 +212,10 @@ func (s *KimiSession) Send(ctx context.Context, content string, opts ...func(*op
 		opt(&req)
 	}
 
-	return s.sendRequest(ctx, req)
+	ch := make(chan string, 1)
+	ch <- content
+	return ch, nil
+	// return s.sendRequest(ctx, req)
 }
 
 func (s *KimiSession) sendRequest(ctx context.Context, req openai.ChatCompletionRequest) (chan string, error) {
@@ -198,6 +249,6 @@ func (s *KimiSession) sendRequest(ctx context.Context, req openai.ChatCompletion
 	return ch, nil
 }
 
-func (c *KimiClient) Close() error {
+func (s *KimiSession) Close() error {
 	return nil
 }

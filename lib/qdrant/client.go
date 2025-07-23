@@ -46,9 +46,10 @@ func tryConnect(c *Config) (*qdrant.Client, error) {
 
 func buildQdrant(c *Config) (*qdrant.Client, error) {
 	client, err := qdrant.NewClient(&qdrant.Config{
-		Host:   c.Host,
-		Port:   c.Port,
-		APIKey: c.APIKey,
+		Host:                   c.Host,
+		Port:                   c.Port,
+		APIKey:                 c.APIKey,
+		SkipCompatibilityCheck: true,
 	})
 	if err != nil {
 		return nil, err
@@ -61,7 +62,8 @@ func buildQdrant(c *Config) (*qdrant.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	_ = reply.GetVersion()
+	_ = reply
+	// _ = reply.GetVersion()
 
 	return client, nil
 }
